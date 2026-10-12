@@ -100,7 +100,10 @@ const ChatState = Annotation.Root({
 
 async function retrieveNode(state) {
   const chunks = await loadKnowledgeChunks();
-  return { context: retrieve(state.question, chunks) };
+
+  return {
+    context: retrieve(state.question, chunks)
+  };
 }
 
 async function answerNode(state) {
@@ -140,15 +143,17 @@ async function answerNode(state) {
     )
   ]);
 
-  return { answer: String(result.content) };
+  return {
+    answer: String(result.content)
+  };
 }
 
 const graph = new StateGraph(ChatState)
   .addNode("retrieve", retrieveNode)
-  .addNode("answer", answerNode)
+  .addNode("generate_answer", answerNode)
   .addEdge(START, "retrieve")
-  .addEdge("retrieve", "answer")
-  .addEdge("answer", END)
+  .addEdge("retrieve", "generate_answer")
+  .addEdge("generate_answer", END)
   .compile();
 
 export default async function handler(request) {
@@ -159,17 +164,25 @@ export default async function handler(request) {
 
     if (!process.env.GROQ_API_KEY) {
       console.error("GROQ_API_KEY is missing.");
+
       return jsonResponse(
-        { error: "GROQ_API_KEY is missing. Add it to .env and restart Netlify Dev." },
+        {
+          error:
+            "GROQ_API_KEY is missing. Add it to the Netlify environment variables."
+        },
         500
       );
     }
 
     let body;
+
     try {
       body = await request.json();
     } catch {
-      return jsonResponse({ error: "Request body must be valid JSON." }, 400);
+      return jsonResponse(
+        { error: "Request body must be valid JSON." },
+        400
+      );
     }
 
     const question =
@@ -181,7 +194,9 @@ export default async function handler(request) {
 
     if (question.length > MAX_QUESTION_LENGTH) {
       return jsonResponse(
-        { error: `Keep questions under ${MAX_QUESTION_LENGTH} characters.` },
+        {
+          error: `Keep questions under ${MAX_QUESTION_LENGTH} characters.`
+        },
         400
       );
     }
@@ -193,7 +208,6 @@ export default async function handler(request) {
       sources: [...new Set(result.context.map((item) => item.source))]
     });
   } catch (error) {
-    // Full details appear in the terminal running `npm run dev`.
     console.error("Chat function failed:", error);
 
     return jsonResponse(
