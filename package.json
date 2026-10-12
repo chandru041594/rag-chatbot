@@ -1,0 +1,17 @@
+{
+  "name": "agentic-rag-chatbot",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "@langchain/core": "latest",
+    "@langchain/groq": "latest",
+    "@langchain/langgraph": "latest",
+    "@langchain/textsplitters": "latest"
+  },
+  "devDependencies": {
+    "netlify-cli": "latest"
+  }
+}

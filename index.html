@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Project RAG Chatbot</title>
+
+    <style>
+      body {
+        max-width: 760px;
+        margin: 40px auto;
+        padding: 0 16px;
+        font: 16px/1.5 system-ui, sans-serif;
+      }
+
+      textarea {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 110px;
+        padding: 12px;
+      }
+
+      button {
+        margin-top: 10px;
+        padding: 10px 16px;
+      }
+
+      #answer {
+        white-space: pre-wrap;
+        margin-top: 24px;
+      }
+
+      #status {
+        color: #555;
+        overflow-wrap: anywhere;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Project RAG Chatbot</h1>
+    <p>Ask a question about the project documents.</p>
+
+    <form id="chat-form">
+      <label for="question">Your question</label>
+      <textarea
+        id="question"
+        maxlength="1000"
+        placeholder="For example: How do I run the project?"
+        required
+      ></textarea>
+      <button id="submit" type="submit">Ask</button>
+    </form>
+
+    <p id="status" role="status"></p>
+
+    <section>
+      <h2>Answer</h2>
+      <div id="answer"></div>
+      <p id="sources"></p>
+    </section>
+
+    <script>
+      const form = document.querySelector("#chat-form");
+      const questionInput = document.querySelector("#question");
+      const submitButton = document.querySelector("#submit");
+      const status = document.querySelector("#status");
+      const answer = document.querySelector("#answer");
+      const sources = document.querySelector("#sources");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        answer.textContent = "";
+        sources.textContent = "";
+        status.textContent = "Thinking…";
+        submitButton.disabled = true;
+
+        try {
+          const response = await fetch("/.netlify/functions/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: questionInput.value })
+          });
+
+          // Read text first. This gives a useful message if Netlify returns
+          // a plain-text error instead of JSON.
+          const rawResponse = await response.text();
+
+          let data;
+          try {
+            data = JSON.parse(rawResponse);
+          } catch {
+            throw new Error(
+              `The function returned a non-JSON response (${response.status}): ` +
+              rawResponse.slice(0, 500)
+            );
+          }
+
+          if (!response.ok) {
+            throw new Error(data.error || `Request failed (${response.status}).`);
+          }
+
+          answer.textContent = data.answer || "The function returned no answer.";
+
+          if (Array.isArray(data.sources) && data.sources.length > 0) {
+            sources.textContent =
+              "Sources: " + [...new Set(data.sources)].join(", ");
+          }
+
+          status.textContent = "";
+        } catch (error) {
+          status.textContent = error.message;
+        } finally {
+          submitButton.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
